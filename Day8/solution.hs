@@ -118,6 +118,22 @@ decodeOutput (obs, out) =
 
 -- TODO: Refactor all this mess!!!
 
+{-
+  refined algorithm:
+  length 2 -> 1
+  length 3 -> 7
+  length 4 -> 4
+  length 5 ->
+  if 2 letters match with 1 it's 3,
+  else if 3 letters match with 4 it's 5,
+  else it's 2
+  length 6 ->
+  if 1 letter matches with 1 it's 6
+  else if 4 letters match with 4 it's 9
+  else it's 0
+  length 7 -> 8
+-}
+
 main = do
   contents <- readFile "input.txt"
 
