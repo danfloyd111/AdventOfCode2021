@@ -1,6 +1,9 @@
 import System.IO
 
 {-
+
+ An example to show the logic behind the solution:
+
  initial state: 3,4,3,1,2
 
  states     0  1  2  3  4  5  6  7  8
@@ -21,8 +24,7 @@ time tn, with the only exception of state[6] and state[8].
 - state[8] at time tn+1 inherits the state in position 0 at time tn (every fish in state 0 spawn a new fish-child with
   state 8)
 
-That's it! Exploiting an exponential solution in a linear time (just because we care of the number of the fishes and
-not the final state obviously)
+That's it!
 
 -}
 
