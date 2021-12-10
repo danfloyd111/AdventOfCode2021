@@ -116,7 +116,7 @@ decodeOutput (obs, out) =
       digits = decodeDigits $ words obs
    in readInt $ computeOutput digits sortedOut
 
--- TODO: Refactor all this mess!!!
+-- TODO: Refactor all this mess!!! Sort all substring in JUST ONE PLACE!!!
 
 {-
   refined algorithm:
