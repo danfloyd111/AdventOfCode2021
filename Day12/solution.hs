@@ -50,7 +50,17 @@ isNodeOfPath n p =
   let ps = wordsWhen (== '-') p
    in n `elem` ps
 
+atLeastTwo [] _ = False
+atLeastTwo (x : xs) acc = (x `elem` acc) || atLeastTwo xs (x : acc)
+
+hasTwoSmallNodesOfTheSameType p =
+  let ps = wordsWhen (== '-') p
+      fs = Prelude.filter isSmallNode ps
+   in atLeastTwo fs []
+
 isValidNodeForPath n p = not (isSmallNode n && isNodeOfPath n p)
+
+isValidNodeForPathSecondPart n p = not (isSmallNode n && hasTwoSmallNodesOfTheSameType p && isNodeOfPath n p)
 
 -- TODO: not using cache for now... use it and optimize!!!!
 findTotalPaths nodesMap _ [] totals = totals
@@ -67,6 +77,21 @@ findTotalPaths nodesMap cache partials totals =
       newCache = buildCache nextTotals
    in findTotalPaths nodesMap (cache ++ newCache) nextPartials (totals ++ nextTotals)
 
+-- TODO: refactor this mess and use a single function with accepting an high level function
+findTotalPaths2 nodesMap _ [] totals = totals
+findTotalPaths2 nodesMap cache partials totals =
+  let buildNextPartialsList [] acc = acc
+      buildNextPartialsList (p : ps) acc =
+        let lastNode = getLastNodeFromPath p
+            leafs = fromJust (Data.Map.lookup lastNode nodesMap)
+            updatedPaths = Prelude.map (\l -> p ++ "-" ++ l) leafs
+            validPaths = Prelude.filter (\p -> isValidNodeForPathSecondPart (getLastNodeFromPath p) (removeEndNodeFromPath p)) updatedPaths
+         in buildNextPartialsList ps (validPaths ++ acc)
+      paths = buildNextPartialsList partials []
+      (nextPartials, nextTotals) = splitPathsInPartialsAndTotals paths [] []
+      newCache = buildCache nextTotals
+   in findTotalPaths2 nodesMap (cache ++ newCache) nextPartials (totals ++ nextTotals)
+
 main = do
   content <- readFile "input.txt"
   let lns = lines content
@@ -81,9 +106,12 @@ main = do
   let firstLeafs = fromJust (Data.Map.lookup "start" nodesMap)
   let firstBranches = Prelude.map ("start-" ++) firstLeafs
 
-  let test = findTotalPaths nodesMap [] firstBranches []
-  let test2 = isValidNodeForPath (getLastNodeFromPath "start-b-d") (removeEndNodeFromPath "start-b-d")
+  let completePaths = findTotalPaths nodesMap [] firstBranches []
 
-  -- TODO: ok sembra funzionare, costruisci la cache e prova
+  -- TODO: part 1 working, use the cache and optimize, the second part is slow as hell!!!
 
-  putStrLn $ "Result: " ++ show (length test)
+  putStrLn $ "Result: " ++ show (length completePaths)
+
+  let completePaths2 = findTotalPaths2 nodesMap [] firstBranches []
+
+  putStrLn $ "Result: " ++ show (length completePaths2)
