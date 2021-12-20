@@ -23,15 +23,23 @@ replicatePairs count (p : ps) acc =
   let newPairs = replicate count p
    in replicatePairs count ps (newPairs ++ acc)
 
-reactList :: [(String, String)] -> [(String, Int)] -> String -> [String] -> (String, [String])
+reactList :: [(String, String)] -> [(String, Int)] -> [(Char, Int)] -> [(String, Int)] -> ([(Char, Int)], [(String, Int)])
 reactList rs [] elements resultingPairs = (elements, resultingPairs)
 reactList rs ((p, count) : ps) elements resultingPairs =
   let (element, pairs) = react rs p
-      newElements = replicate count element --TODO: NO!!!!  just element and count for part2
-      newPairs = replicatePairs count pairs [] --TODO: NO!!! just pair and count for part2
-   in reactList rs ps (newElements ++ elements) (newPairs ++ resultingPairs)
+      elemTuple = (element, count)
+      pairTuples = map (,count) pairs
+   in reactList rs ps (elemTuple : elements) (pairTuples ++ resultingPairs)
 
-increaseElementsMap = foldl (\m e -> insertWith (+) e 1 m)
+updateElementsMap [] m = m
+updateElementsMap ((element, count) : elems) m =
+  let m' = insertWith (+) element count m
+   in updateElementsMap elems m'
+
+updatePairsMap [] m = m
+updatePairsMap ((pair, count) : pairs) m =
+  let m' = insertWith (+) pair count m
+   in updatePairsMap pairs m'
 
 fromJust :: Maybe a -> a
 fromJust Nothing = error "fromJust - got Nothing"
@@ -41,13 +49,11 @@ buildElementsMap bs m = foldl (\m b -> insertWith (+) b 1 m) m bs
 
 buildPairsMap ps = fromList (map (,1) ps)
 
-buildPairsMapFromPairsList = foldl (\m p -> insertWith (+) p 1 m)
-
 polymerizationStep reactionTuples elementsMap pairsMap =
   let activePairs = Prelude.filter (\(p, c) -> c > 0) (toList pairsMap)
-      (elements, pairs) = reactList reactionTuples activePairs [] []
-      newElementsMap = increaseElementsMap elementsMap elements
-      newPairsMap = buildPairsMapFromPairsList empty pairs
+      (elements, pairs) = reactList reactionTuples activePairs [] [] --TODO: attention here!
+      newElementsMap = updateElementsMap elements elementsMap
+      newPairsMap = updatePairsMap pairs empty
    in (newElementsMap, newPairsMap)
 
 polymerize reactionTuples elementsMap pairsMap 0 = (elementsMap, pairsMap)
@@ -56,7 +62,7 @@ polymerize reactionTuples elementsMap pairsMap n =
    in polymerize reactionTuples em' pm' (n -1)
 
 main = do
-  contents <- readFile "input-sample.txt"
+  contents <- readFile "input.txt"
   let base : _ : reactions = lines contents
   let basePairs = polymerToPairs base []
   let reactionTuples = map parseReaction reactions
