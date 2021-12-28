@@ -251,10 +251,8 @@ calculatePacketExp packet =
 
 main = do
   message <- readFile "input.txt"
-  --let message = inputSample1
 
   -- some tests
-
   putStrLn "\nTesting hex string to bin string conversion:"
   putStrLn $
     "Test on input sample #1 - Passed: "
@@ -296,6 +294,7 @@ main = do
   let (samplePacket7, _, _) = parsePacket $ hexStringToBitstring inputSample7
   putStrLn $ "Test on input sample #7 - Passed: " ++ show (getVersionSum samplePacket7 == 31)
 
+  -- solutions
   putStrLn $ "\nEvaluating message: " ++ message ++ "\n"
   let (parsedPacket, _, _) = parsePacket $ hexStringToBitstring message
   putStrLn $ "Part 1 - Version sum: " ++ show (getVersionSum parsedPacket)
