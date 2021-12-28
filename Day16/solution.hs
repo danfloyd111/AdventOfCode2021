@@ -3,6 +3,7 @@ import qualified Data.Map as Map
 import System.IO
 
 -- This times we have a lot of short samples so is more convenient to have them stored direclty here
+-- TODO: do testing elsewhere
 
 inputSample1 = "D2FE28"
 
@@ -31,7 +32,7 @@ type Bit = Bool
 type Bitstring = [Bit]
 
 data Header = Header
-  { version :: Bitstring,
+  { version :: Bitstring, -- TODO: refactor this data type and use directly Int for version and Exp for typeId
     typeID :: Bitstring
   }
   deriving (Show)
@@ -44,7 +45,22 @@ data Packet = Packet
 
 data Payload = Literal Bitstring | Packets [Packet] deriving (Show)
 
+-- typeID   0      1     2     3     4     5    6    7
+data Operator = Sum | Prod | Min | Max | Val | Gt | Lt | Eq deriving (Eq, Show)
+
 -- Helper functions
+
+getOperator :: Bitstring -> Operator
+getOperator typeId
+  | typeId == [False, False, False] = Sum
+  | typeId == [False, False, True] = Prod
+  | typeId == [False, True, False] = Min
+  | typeId == [False, True, True] = Max
+  | typeId == [True, False, False] = Val
+  | typeId == [True, False, True] = Gt
+  | typeId == [True, True, False] = Lt
+  | typeId == [True, True, True] = Eq
+  | otherwise = error $ "Error! getOperator - typeID not valid: " ++ showBitstring typeId
 
 emptyBitstring :: Bitstring -> Bool
 emptyBitstring = null
@@ -133,7 +149,7 @@ parsePacket :: Bitstring -> (Packet, Bitstring, Int)
 parsePacket packet@(v0 : v1 : v2 : t0 : t1 : t2 : payload) =
   let version = [v0, v1, v2]
       typeID = [t0, t1, t2]
-   in if isLiteralPayload typeID
+   in if getOperator typeID == Val
         then
           let (parsedLength, parsedPayload) = parseLiteralPayload payload
               totalPacketLength = 6 + parsedLength -- the header has a fixed length of 6
@@ -144,6 +160,8 @@ parsePacket packet@(v0 : v1 : v2 : t0 : t1 : t2 : payload) =
            in if lengthTypeID
                 then
                   let numOfSubPkts = bitstringToInt (take 11 rawPackets)
+                      -- TODO: refactor then and else branches using a function that take another function
+                      -- i.e. withNumber or withLength and how many bits to take 11 or 15 ...
                       packets = drop 11 rawPackets
                       (decodedPks, padding, parsedLen) = parsePacketsPayloadWithNumber numOfSubPkts packets
                       totalLen = 6 + 1 + 11 + parsedLen -- version + length type bit + length encoding + parsed length
@@ -164,6 +182,72 @@ getVersionSum packet =
    in case pld of
         Literal _ -> ver
         Packets packets -> ver + sum (map getVersionSum packets)
+
+-- TODO: refactor all of these functions: use higher level functions and pass lower
+-- level functions e.g. (+) (>) (==) etc etc
+sumPackets :: [Packet] -> Int
+sumPackets pks = sum $ map calculatePacketExp pks
+
+multiplyPackets :: [Packet] -> Int
+multiplyPackets pks = product $ map calculatePacketExp pks
+
+getMinimumPacket :: [Packet] -> Int
+getMinimumPacket pks = minimum $ map calculatePacketExp pks
+
+getMaximumPacket :: [Packet] -> Int
+getMaximumPacket pks = maximum $ map calculatePacketExp pks
+
+isGtPacket :: [Packet] -> Int
+isGtPacket (p0 : p1 : _) =
+  let v0 = calculatePacketExp p0
+      v1 = calculatePacketExp p1
+   in if v0 > v1 then 1 else 0
+isGtPacket _ = error "Error! isGtPacket - packet list should contains at least two packets"
+
+isLtPacket :: [Packet] -> Int
+isLtPacket (p0 : p1 : _) =
+  let v0 = calculatePacketExp p0
+      v1 = calculatePacketExp p1
+   in if v0 < v1 then 1 else 0
+isLtPacket _ = error "Error! isLtPacket - packet list should contains at least two packets"
+
+areEqPackets :: [Packet] -> Int
+areEqPackets (p0 : p1 : _) =
+  let v0 = calculatePacketExp p0
+      v1 = calculatePacketExp p1
+   in if v0 == v1 then 1 else 0
+areEqPackets _ = error "Error! areEqPackets - packet list should contains at least two packets"
+
+-- TODO: refactor this! use functions to handle cases
+calculatePacketExp :: Packet -> Int
+calculatePacketExp packet =
+  let op = getOperator $ typeID (header packet)
+      pl = payload packet
+   in case op of
+        Sum -> case pl of
+          Literal _ -> error "Error! calculatePacketExp - Corrupted packet: a Sum packet cannot contain a Literal value"
+          Packets pks -> sumPackets pks
+        Prod -> case pl of
+          Literal _ -> error "Error! calculatePacketExp - Corrupted packet: a Prod packet cannot contain a Literal value"
+          Packets pks -> multiplyPackets pks
+        Min -> case pl of
+          Literal _ -> error "Error! calculatePacketExp - Corrupted packet: a Min packet cannot contain a Literal value"
+          Packets pks -> getMinimumPacket pks
+        Max -> case pl of
+          Literal _ -> error "Error! calculatePacketExp - Corrupted packet: a Max packet cannot contain a Literal value"
+          Packets pks -> getMaximumPacket pks
+        Val -> case pl of
+          Literal v -> bitstringToInt v
+          Packets _ -> error "Error! calculatePacketExp - Corrupted packet: a Val packet cannot contain sub-packets"
+        Gt -> case pl of
+          Literal _ -> error "Error! calculatePacketExp - Corrupted packet: a Gt packet cannot contain a Literal value"
+          Packets pks -> isGtPacket pks
+        Lt -> case pl of
+          Literal _ -> error "Error! calculatePacketExp - Corrupted packet: a Lt packet cannot contain a Literal value"
+          Packets pks -> isLtPacket pks
+        Eq -> case pl of
+          Literal _ -> error "Error! calculatePacketExp - Corrupted packet: a Eq packet cannot contain a Literal value"
+          Packets pks -> areEqPackets pks
 
 main = do
   message <- readFile "input.txt"
@@ -212,6 +296,7 @@ main = do
   let (samplePacket7, _, _) = parsePacket $ hexStringToBitstring inputSample7
   putStrLn $ "Test on input sample #7 - Passed: " ++ show (getVersionSum samplePacket7 == 31)
 
-  putStrLn $ "\nEvaluating message: " ++ message
+  putStrLn $ "\nEvaluating message: " ++ message ++ "\n"
   let (parsedPacket, _, _) = parsePacket $ hexStringToBitstring message
   putStrLn $ "Part 1 - Version sum: " ++ show (getVersionSum parsedPacket)
+  putStrLn $ "Part 2 - Packet value: " ++ show (calculatePacketExp parsedPacket)
