@@ -1,4 +1,3 @@
-import Debug.Trace
 import System.IO
 
 type Octopus = Int
