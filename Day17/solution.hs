@@ -20,7 +20,41 @@ parseStartAndEndCoords rawSpan =
 
 -- calculates the sum of the first n integers
 gaussSum :: Int -> Int
-gaussSum n = (n * (n + 1)) `div` 2
+gaussSum n = n * (n + 1) `div` 2
+
+removeDuplicates :: Eq a => [a] -> [a]
+removeDuplicates = rdHelper []
+  where
+    rdHelper seen [] = []
+    rdHelper seen (x : xs)
+      | x `elem` seen = rdHelper seen xs
+      | otherwise = x : rdHelper (x : seen) xs
+
+checkStartingVelocity :: (Int, Int) -> (Int, Int) -> (Int, Int) -> (Int, Int) -> Bool
+checkStartingVelocity (vx, vy) xTargetSpan@(xMin, xMax) yTargetSpan@(yMin, yMax) position@(x, y)
+  | isInTarget position xTargetSpan yTargetSpan = True
+  | stillFalling || stillDrifting = checkStartingVelocity (vx', vy - 1) xTargetSpan yTargetSpan position'
+  | otherwise = False
+  where
+    isInTarget (x, y) (xMin, xMax) (yMin, yMax) = x <= xMax && x >= xMin && y <= yMax && y >= yMin
+    position' = (x + vx, y + vy)
+    vx'
+      | vx > 0 = vx - 1
+      | vx < 0 = vx + 1
+      | otherwise = 0
+    stillFalling = y > yMax && x <= xMax
+    stillDrifting = y > yMin && x < xMin && vx /= 0
+
+checkXVelocity :: Int -> Int -> Int -> Int -> Bool
+checkXVelocity x xMin xMax vx
+  | x >= xMin && x <= xMax = True
+  | x < xMin && vx /= 0 = checkXVelocity (x + vx) xMin xMax vx'
+  | otherwise = False
+  where
+    vx'
+      | vx > 0 = vx - 1
+      | vx < 0 = vx + 1
+      | otherwise = 0
 
 main = do
   inputLine <- readFile "input.txt"
@@ -32,6 +66,15 @@ main = do
   let maxHeight = gaussSum (- yTargetMin -1)
 
   putStrLn $ "Maximum height: " ++ show maxHeight
+
+  let yInitVelocityValues = removeDuplicates $ concatMap (\yt -> [yt .. (- yt - 1)]) [yTargetMin .. yTargetMax]
+  let xInitVelocityValues = filter (checkXVelocity 0 xTargetMin xTargetMax) [0 .. xTargetMax]
+  let initVelocityValues = [(x, y) | x <- xInitVelocityValues, y <- yInitVelocityValues]
+  let validVelocityValues = filter (\v -> checkStartingVelocity v (xTargetMin, xTargetMax) (yTargetMin, yTargetMax) (0, 0)) initVelocityValues
+
+  putStrLn "All valid initial velocity values:"
+  print validVelocityValues
+  putStrLn $ "Total distinct velocity values: " ++ show (length validVelocityValues)
 
 {-
   Part 1 demonstration:
