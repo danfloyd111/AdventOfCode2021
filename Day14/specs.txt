@@ -58,6 +58,8 @@ Apply 10 steps of pair insertion to the polymer template and find the most and l
 What do you get if you take the quantity of the most common element and subtract the quantity of the least 
 common element?
 
+Your puzzle answer was 3230.
+
 --- Part Two ---
 
 The resulting polymer isn't nearly strong enough to reinforce the submarine. You'll need to run more steps of the pair 
@@ -69,3 +71,7 @@ is H (occurring 3849876073 times); subtracting these produces 2188189693529.
 Apply 40 steps of pair insertion to the polymer template and find the most and least common elements in the result. 
 What do you get if you take the quantity of the most common element and subtract the quantity of the least 
 common element?
+
+Your puzzle answer was 3542388214529.
+
+Both parts of this puzzle are complete! They provide two gold stars: **

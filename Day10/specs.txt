@@ -60,6 +60,8 @@ score for this file is 6+57+1197+25137 = 26397 points!
 Find the first illegal character in each corrupted line of the navigation subsystem. What is the total syntax error 
 score for those errors?
 
+Your puzzle answer was 390993.
+
 --- Part Two ---
 
 Now, discard the corrupted lines. The remaining lines are incomplete.
@@ -106,3 +108,7 @@ are the same number of scores smaller and larger than it.
 
 Find the completion string for each incomplete line, score the completion strings, and sort the scores. 
 What is the middle score?
+
+Your puzzle answer was 2391385187.
+
+Both parts of this puzzle are complete! They provide two gold stars: **
